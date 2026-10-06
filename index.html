@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Go Engine — Main & Analisis</title>
+<meta name="description" content="Engine Go di browser: main lawan AI, analisis posisi (winrate + saran langkah), dan tutorial. Papan 9x9/13x13/19x19.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1a1a">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">⚫⚪ Go Engine</div>
+  <div class="tag">Main lawan AI · Analisis posisi · Tutorial</div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button id="t-play" class="on">🎮 Main</button>
+    <button id="t-analyze">🔍 Analisis</button>
+    <button id="t-tutor">📖 Tutorial</button>
+  </div>
+
+  <!-- ============ MAIN ============ -->
+  <section id="p-play" class="panel on">
+    <div class="card">
+      <div class="row">
+        <label class="f">Papan</label>
+        <select id="play-size"><option value="9" selected>9×9</option><option value="13">13×13</option><option value="19">19×19</option></select>
+        <label class="f">Level AI</label>
+        <select id="play-level"><option value="0" selected>Santai</option><option value="1">Sedang</option><option value="2">Kuat</option></select>
+      </div>
+      <div class="row">
+        <label class="f">Kamu</label>
+        <select id="play-color"><option value="1" selected>Hitam (jalan dulu)</option><option value="2">Putih</option></select>
+        <button class="btn dark" id="play-new">↺ Baru</button>
+      </div>
+      <div class="hint" id="play-note">Santai ≈ cocok pemula. Di 19×19 AI butuh beberapa detik mikir.</div>
+    </div>
+    <div class="board-wrap"><canvas id="board-play" class="board"></canvas></div>
+    <div class="card">
+      <div class="status">
+        <span class="pill">Giliran: <b id="play-turn">Hitam</b></span>
+        <span class="pill">⚫ tawanan: <b id="play-capb">0</b></span>
+        <span class="pill">⚪ tawanan: <b id="play-capw">0</b></span>
+        <span class="pill">Skor: <b id="play-score">—</b></span>
+      </div>
+      <div class="row">
+        <button class="btn" id="play-pass">Lewat</button>
+        <button class="btn" id="play-undo">↩ Urungkan</button>
+        <button class="btn" id="play-resign">🏳 Menyerah</button>
+      </div>
+      <div class="hint" id="play-msg" style="margin-top:8px">Hitam jalan dulu. Ketuk titik perpotongan untuk menaruh batu.</div>
+    </div>
+  </section>
+
+  <!-- ============ ANALISIS ============ -->
+  <section id="p-analyze" class="panel">
+    <div class="card">
+      <div class="row">
+        <label class="f">Papan</label>
+        <select id="an-size"><option value="9" selected>9×9</option><option value="13">13×13</option><option value="19">19×19</option></select>
+        <label class="f">Alat</label>
+        <button class="toolbtn on" id="tool-b" title="Batu hitam">⚫</button>
+        <button class="toolbtn" id="tool-w" title="Batu putih">⚪</button>
+        <button class="toolbtn" id="tool-e" title="Hapus">⌫</button>
+      </div>
+      <div class="row">
+        <label class="f">Giliran</label>
+        <select id="an-turn"><option value="1" selected>Hitam</option><option value="2">Putih</option></select>
+        <button class="btn" id="an-clear">🧹 Bersihkan</button>
+        <button class="btn primary" id="an-go">🔍 Analisis</button>
+      </div>
+      <div class="progress" id="an-prog" style="display:none"><i></i></div>
+      <div class="hint" id="an-msg">Susun posisi dengan alat di atas, lalu tekan Analisis.</div>
+    </div>
+    <div class="board-wrap"><canvas id="board-an" class="board"></canvas></div>
+    <div class="card" id="an-result" style="display:none">
+      <div class="row" style="justify-content:space-between">
+        <b>Evaluasi engine</b><span class="hint" id="an-ms"></span>
+      </div>
+      <div class="evalbar" id="an-evalbar"><span style="left:6px;color:#fff" id="an-wb"></span><span style="right:6px" id="an-ww"></span></div>
+      <div class="status"><span class="pill">Estimasi skor: <b id="an-score">—</b></span></div>
+      <b>Saran langkah untuk <span id="an-for">Hitam</span>:</b>
+      <ul class="moves" id="an-moves"></ul>
+      <div class="hint">Winrate dari simulasi Monte Carlo. Engine ini level pemula-menengah — bagus untuk belajar, bukan untuk pro.</div>
+    </div>
+  </section>
+
+  <!-- ============ TUTORIAL ============ -->
+  <section id="p-tutor" class="panel">
+    <div class="card tut">
+      <h3>🎯 Tujuan</h3>
+      <p>Kuasai <b>wilayah</b> lebih luas dari lawan saat permainan selesai. Hitam jalan duluan; sebagai kompensasi, Putih dapat <b>komi 6,5 poin</b>.</p>
+      <h3>🪨 Menaruh batu</h3>
+      <p>Batu ditaruh di <b>titik perpotongan</b> garis (bukan di kotak), bergantian hitam-putih. Sekali ditaruh tidak bisa digeser.</p>
+      <h3>💨 Liberti (napas)</h3>
+      <p>Titik kosong yang bersebelahan dengan batu = liberti. Batu/grup yang kehabisan liberti <b>ditangkap</b> dan diangkat dari papan.</p>
+<pre class="dia"> . . . . .      . . . . .
+ . ● ○ . .  →   . ● . . .   ○ ditangkap!
+ . . . . .      . . . . .
+Hitam main di kanan ○</pre>
+      <h3>⚔️ Atari</h3>
+      <p>Grup yang tinggal <b>1 liberti</b> disebut <i>atari</i> — satu langkah lagi mati. Di papan, grup atari ditandai cincin merah (bisa dimatikan).</p>
+      <h3>🚫 Bunuh diri dilarang</h3>
+      <p>Tidak boleh menaruh batu di titik yang membuat grupmu sendiri 0 liberti — <b>kecuali</b> langkah itu sekaligus menangkap batu lawan.</p>
+      <h3>🔁 Ko</h3>
+      <p>Setelah menangkap 1 batu dalam posisi ko, lawan <b>dilarang langsung merebut balik</b> — harus main di tempat lain dulu. Ini mencegah pengulangan tanpa akhir.</p>
+      <h3>👁️ Mata & hidup-mati</h3>
+      <p>Grup butuh <b>2 "mata"</b> (wilayah kosong terpisah di dalamnya) agar hidup permanen — lawan tidak bisa mengisinya karena bunuh diri. Grup 1 mata bisa dibunuh.</p>
+      <h3>🏁 Selesai & skoring</h3>
+      <p>Permainan selesai saat <b>kedua pemain pass</b> berurutan. Skor = <b>batu di papan + wilayah yang dikuasai</b>. Di app ini dipakai skoring area (Tromp-Taylor).</p>
+      <h3>💡 Tips pemula</h3>
+      <ul>
+        <li><b>Sudut → sisi → tengah.</b> Wilayah paling gampang dibuat di sudut.</li>
+        <li>Jangan menempel batu lawan yang sudah kuat tanpa rencana.</li>
+        <li>Di 9×9, tiap langkah berarti — jangan buang tempo.</li>
+        <li>Kalah itu guru terbaik. Analisis posisimu di tab 🔍.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>Go Engine · aturan full (capture, ko, skoring area) · AI Monte Carlo level pemula-menengah</footer>
+</div>
+
+<script src="js/go-core.js"></script>
+<script src="js/app.js"></script>
+<script>
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
