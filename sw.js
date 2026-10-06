@@ -4,7 +4,7 @@ const FILES = [
   "./", "./index.html",
   "./css/style.css",
   "./js/go-core.js", "./js/worker.js", "./js/app.js",
-  "./manifest.json", "./icon-192.png", "./icon-512.png"
+  "./manifest.json", "./icon.svg"
 ];
 self.addEventListener("install", e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));
